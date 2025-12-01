@@ -1,0 +1,101 @@
+To run the program, the user simply compiles the provided CPU.cpp and main.cpp files with g++, places an input.txtfile containing assembly instructions in the same directory, 
+and executes the resulting program. When run, the simulator reads each instruction from the file, parses labels and opcodes, evaluates condition codes, and executes operations 
+step-by-step while printing the full CPU state after every line. Internally, the CPU maintains 12 general-purpose registers, NZCV status flags, a small memory array, and a 
+program list built during loading. Each instruction has dedicated logic that mimics simplified ARM behavior: MOV and MVN transfer or invert values, arithmetic instructions 
+like ADD and SUB update registers (and flags when using the “S” suffix), and bitwise operations such as AND, ORR, and EOR compute logical results. CMP performs a subtraction to 
+update flags without storing a result, LSL and LSR shift register values left or right, and LDR/STR access memory using register-based addressing. The BEQ instruction enables
+ conditional branching by jumping to previously stored label indices when the zero flag is set. Together, these components simulate the flow of a real instruction pipeline, 
+ allowing the program to evaluate conditions, manipulate registers, modify memory, and follow branches exactly according to the given assembly code.
+
+Test Cases:
+MOV Test Case
+Input: MOV R0,#5
+Expected Output: Register R0 becomes 0x5, other registers unchanged, NZCV = 0000.
+
+MVN Test Case
+Input: MVN R1,#0
+Expected Output: Register R1 becomes 0xFFFFFFFF, NZCV = 0000.
+
+ADD Test Case
+Input:
+MOV R0,#3
+ADD R1,R0,#4
+Expected Output: R1 becomes 0x7, NZCV unchanged (0000).
+
+ADDS Test Case
+Input:
+MOV R0,#0xFFFFFFFF
+ADDS R1,R0,#1
+Expected Output: R1 becomes 0x0, NZCV reflects carry and zero (NZCV = 0101).
+
+SUB Test Case
+Input:
+MOV R0,#10
+SUB R1,R0,#5
+Expected Output: R1 becomes 0x5, NZCV unchanged (0000).
+
+SUBS Test Case
+Input:
+MOV R0,#5
+SUBS R1,R0,#10
+Expected Output: R1 becomes a negative value (0xFFFFFFFB), NZCV updated (N=1, Z=0).
+
+AND Test Case
+Input:
+MOV R0,#6
+AND R1,R0,#3
+Expected Output: R1 becomes 0x2, NZCV = 0000.
+
+ORR Test Case
+Input:
+MOV R0,#6
+ORR R1,R0,#1
+Expected Output: R1 becomes 0x7, NZCV = 0000.
+
+EOR Test Case
+Input:
+MOV R0,#5
+EOR R1,R0,#3
+Expected Output: R1 becomes 0x6, NZCV = 0000.
+
+LSL Test Case
+Input:
+MOV R0,#1
+LSL R1,R0,#3
+Expected Output: R1 becomes 0x8, NZCV = 0000.
+
+LSR Test Case
+Input:
+MOV R0,#8
+LSR R1,R0,#3
+Expected Output: R1 becomes 0x1, NZCV = 0000.
+
+CMP Test Case
+Input:
+MOV R0,#10
+CMP R0,#10
+Expected Output: NZCV = 0110 (zero flag set).
+
+LDR Test Case
+Input:
+MOV R6,#0x100
+MOV R3,#0x20
+STR R3,[R6]
+LDR R1,[R6]
+Expected Output: Memory slot 0 (0x100) becomes 0x20 and R1 loads the same value (0x20).
+
+STR Test Case
+Input:
+MOV R6,#0x104
+MOV R5,#0x55
+STR R5,[R6]
+Expected Output: Memory slot 1 (0x104) becomes 0x55.
+
+BEQ Test Case
+Input:
+MOV R0,#5
+CMP R0,#5
+BEQ TARGET
+MOV R1,#99
+TARGET MOV R1,#1
+Expected Output: R1 becomes 0x1 because BEQ skips the MOV R1,#99 instruction.
